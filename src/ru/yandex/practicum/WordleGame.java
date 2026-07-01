@@ -11,9 +11,9 @@ public class WordleGame {
 
     private int steps; // Шаги
 
-    private final int MAX_STEPS = 6; // Максимум шагов
+    private static final int MAX_STEPS = 6; // Максимум шагов
 
-    private final String TRUE_WORD = "+++++"; // Верное слово
+    private static final String TRUE_WORD = "+++++"; // Верное слово
 
     private final WordleDictionary dictionary; // Словарь
 
