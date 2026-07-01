@@ -65,10 +65,48 @@ class WordleGameTest {
     }
 
     @Test
-    void getHintShouldReturnWordFromDictionary() {
+    void getHintShouldReturnWordFromDictionary() throws WordLengthException {
         WordleDictionary dictionary = new WordleDictionary(List.of("герой", "гонец"));
         WordleGame game = new WordleGame(dictionary);
         String hint = game.getHint();
         assertTrue(dictionary.contains(hint));
+    }
+
+    @Test
+    void checkResultShouldReturnAllPlusesForEqualWords() throws WordLengthException {
+
+        WordleGame game = new WordleGame(new WordleDictionary(List.of("герой")));
+
+        assertEquals("+++++", game.checkResult("герой", "герой"));
+    }
+
+    @Test
+    void checkResultShouldReturnCorrectResultForDifferentWords() throws WordLengthException {
+
+        WordleGame game = new WordleGame(new WordleDictionary(List.of("герой")));
+
+        assertEquals("+^-^-", game.checkResult("герой", "гонец"));
+    }
+
+    @Test
+    void checkResultShouldCorrectlyHandleRepeatedLetters() throws WordLengthException {
+
+        WordleGame game = new WordleGame(new WordleDictionary(List.of("банан")));
+
+        assertEquals("-+-+-", game.checkResult("банан", "ааааа"));
+    }
+
+    @Test
+    void validateWordShouldThrowWordFormatExceptionForEnglishLetters() {
+        WordleGame game = new WordleGame(new WordleDictionary(List.of("герой")));
+
+        assertThrows(WordFormatException.class, () -> game.validateWord("apple"));
+    }
+
+    @Test
+    void validateWordShouldThrowWordLengthExceptionForWrongLength() {
+        WordleGame game = new WordleGame(new WordleDictionary(List.of("герой")));
+
+        assertThrows(WordLengthException.class, () -> game.validateWord("плебей"));
     }
 }

@@ -7,17 +7,23 @@ import java.util.Random;
 
 public class WordleGame {
 
-    private String answer; // Загаданное слово
+    private final String answer; // Загаданное слово
 
     private int steps; // Шаги
 
-    private WordleDictionary dictionary; // Словарь
+    private final int MAX_STEPS = 6; // Максимум шагов
+
+    private final String TRUE_WORD = "+++++"; // Верное слово
+
+    private final WordleDictionary dictionary; // Словарь
 
     private boolean finished; // Закончена ли игра
 
     private boolean victory; // Победил ли пользователь
 
-    private List<MoveResult> previousMoves; // Успешные ходы
+    private final List<MoveResult> previousMoves; // Успешные ходы
+
+    private final Random random = new Random();
 
     public WordleGame(WordleDictionary dictionary) {
         this.dictionary = dictionary;
@@ -44,30 +50,93 @@ public class WordleGame {
         return victory;
     }
 
+    // Нормализация слова
+    private String normalize(String word) {
+        return word.trim().toLowerCase().replace('ё', 'е');
+    }
+
+    // Метод проверки того, содержит ли слово только русские буквы
+    private boolean containsOnlyRussianLetters(String word) {
+        return word.matches("[а-я]+");
+    }
+
+    // Метод для проверки введённого слова
+    public String validateWord(String word) throws WordLengthException, WordFormatException {
+        String normalizedWord = normalize(word);
+
+        if (normalizedWord.length() != 5) {
+            throw new WordLengthException("Неподходящее количество символов.");
+        }
+
+        if (!containsOnlyRussianLetters(normalizedWord)) {
+            throw new WordFormatException("Слово должно состоять только из русских букв.");
+        }
+
+        return normalizedWord;
+    }
+
+    // Метод сравнения загаданного и ввёденного слова
+    public String checkResult(String wordAnswer, String wordInput) throws WordLengthException {
+        wordAnswer = normalize(wordAnswer);
+        wordInput = normalize(wordInput);
+
+        if (wordAnswer.length() != wordInput.length()) {
+            throw new WordLengthException("Неподходящее количество символов.");
+        }
+
+        if (wordAnswer.equals(wordInput)) {
+            return "+++++";
+        }
+
+        char[] result = {'-', '-', '-', '-', '-'};
+        boolean[] usedAnswerLetters = new boolean[wordAnswer.length()];
+
+        for (int i = 0; i < wordAnswer.length(); i++) {
+            if (wordAnswer.charAt(i) == wordInput.charAt(i)) {
+                result[i] = '+';
+                usedAnswerLetters[i] = true;
+            }
+        }
+
+        for (int i = 0; i < wordAnswer.length(); i++) {
+            if (result[i] != '+') {
+                for (int j = 0; j < wordAnswer.length(); j++) {
+                    if (!usedAnswerLetters[j] && wordInput.charAt(i) == wordAnswer.charAt(j)) {
+                        result[i] = '^';
+                        usedAnswerLetters[j] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return new String(result);
+    }
+
     // Анализ совпадения слова с ответом
-    public String move(String input) throws RuntimeException, WordLengthException,
+    public String move(String input) throws WordLengthException,
             WordNotFoundInDictionaryException, WordFormatException {
 
         if (finished) {
-            throw new RuntimeException("Игра окончена.");
+            throw new GameIsFinishedException("Игра окончена.");
         }
 
-        String normalizedInput = dictionary.validateWord(input);
+        String normalizedInput = validateWord(input);
 
         if (!dictionary.contains(normalizedInput)) {
             throw new WordNotFoundInDictionaryException("Данное слово неизвестно.");
         }
 
-        String result = dictionary.checkResult(answer, input);
+        String result = checkResult(answer, input);
 
         steps++;
 
         previousMoves.add(new MoveResult(input, result));
 
-        if (result.equals("+++++")) {
+        if (result.equals(TRUE_WORD)) {
             finished = true;
             victory = true;
-        } else if (steps >= 6) {
+        } else if (steps >= MAX_STEPS) {
             finished = true;
         }
 
@@ -75,9 +144,9 @@ public class WordleGame {
     }
 
     // Слово-подсказка с учётом всего, что вводил пользователь ранее
-    public String getHint() {
+    public String getHint() throws WordLengthException {
         if (finished) {
-            throw new RuntimeException("Игра уже окончена.");
+            throw new GameIsFinishedException("Игра уже окончена.");
         }
 
         List<String> candidates = new ArrayList<>();
@@ -102,15 +171,11 @@ public class WordleGame {
                 String previousWord = move.getWord();
                 String previousResult = move.getResult();
 
-                try {
-                    String candidateResult = dictionary.checkResult(candidate, previousWord);
+                String candidateResult = checkResult(candidate, previousWord);
 
-                    if (!candidateResult.equals(previousResult)) {
-                        suitable = false;
-                        break;
-                    }
-                } catch (WordLengthException e) {
-                    throw new RuntimeException("Ошибка при поиске подсказки.", e);
+                if (!candidateResult.equals(previousResult)) {
+                    suitable = false;
+                    break;
                 }
             }
 
@@ -120,10 +185,9 @@ public class WordleGame {
         }
 
         if (candidates.isEmpty()) {
-            throw new RuntimeException("Не удалось найти подходящую подсказку.");
+            throw new HintNotFoundException("Не удалось найти подходящую подсказку.");
         }
 
-        Random random = new Random();
         int index = random.nextInt(candidates.size());
 
         return candidates.get(index);

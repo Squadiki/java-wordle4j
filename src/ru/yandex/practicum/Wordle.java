@@ -15,48 +15,50 @@ public class Wordle {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        PrintWriter log = null;
 
-        try (PrintWriter log = new PrintWriter("log.txt")) {
+        try {
+            log = new PrintWriter("log.txt");
 
-            try {
-                WordleDictionaryLoader loader = new WordleDictionaryLoader();
-                List<String> rawWords = loader.readFile("words_ru.txt");
-                WordleDictionary dictionary = new WordleDictionary(rawWords);
-                WordleGame game = new WordleGame(dictionary);
+            WordleDictionaryLoader loader = new WordleDictionaryLoader();
+            List<String> rawWords = loader.readFile("words_ru.txt");
+            WordleDictionary dictionary = new WordleDictionary(rawWords);
+            WordleGame game = new WordleGame(dictionary);
 
-                while (!game.isFinished()) {
-                    System.out.println("Введите слово:");
-                    String input = scanner.nextLine();
+            while (!game.isFinished()) {
+                System.out.println("Введите слово:");
+                String input = scanner.nextLine();
 
-                    if (input.isEmpty()) {
-                        String hint = game.getHint();
-                        System.out.println("Подсказка: " + hint);
-                        input = hint;
-                    }
-
-                    try {
-                        String stepResult = game.move(input);
-                        System.out.println(stepResult);
-                    } catch (WordLengthException | WordNotFoundInDictionaryException | WordFormatException e) {
-                        System.out.println(e.getMessage());
-                    }
+                if (input.isEmpty()) {
+                    String hint = game.getHint();
+                    System.out.println("Подсказка: " + hint);
+                    input = hint;
                 }
 
-                if (game.isVictory()) {
-                    System.out.println("Победа!");
-                } else {
-                    System.out.println("Попытки закончились.");
+                try {
+                    String stepResult = game.move(input);
+                    System.out.println(stepResult);
+                } catch (WordLengthException | WordNotFoundInDictionaryException | WordFormatException e) {
+                    System.out.println(e.getMessage());
                 }
-
-                System.out.println("Загаданное слово: " + game.getAnswer());
-
-            } catch (Exception e) {
-                System.out.println("Произошла системная ошибка. Подробности записаны в log.txt.");
-                e.printStackTrace(log);
             }
 
+            if (game.isVictory()) {
+                System.out.println("Победа!");
+            } else {
+                System.out.println("Попытки закончились.");
+            }
+
+            System.out.println("Загаданное слово: " + game.getAnswer());
+
+
         } catch (Exception e) {
-            System.out.println("Не удалось создать лог-файл.");
+            System.out.println("Произошла системная ошибка. Подробности записаны в log.txt.");
+            e.printStackTrace(log);
+        } finally {
+            if (log != null) {
+                log.close();
+            }
         }
     }
 }
